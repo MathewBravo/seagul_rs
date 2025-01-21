@@ -1,31 +1,32 @@
-// !TODO Fix tests for approx random numbers
-
-
-use rand::{ Rng, RngCore };
+use rand::{Rng, RngCore};
 
 #[derive(Debug)]
-pub struct Network{
+pub struct Network {
     layers: Vec<Layer>,
 }
 
 #[derive(Debug)]
-struct Layer{
+pub struct Layer {
     neurons: Vec<Neuron>,
 }
 
 #[derive(Debug)]
-pub struct Neuron{
+pub struct Neuron {
     bias: f32,
     weights: Vec<f32>,
 }
 
 #[derive(Debug)]
-pub struct LayerTopology{
+pub struct LayerTopology {
     pub neurons: usize,
 }
 
 impl Network {
-    pub fn random(rng: &mut dyn RngCore, layers: &[LayerTopology]) -> Self{
+    pub fn new(layers: Vec<Layer>) -> Self {
+        Self { layers }
+    }
+
+    pub fn random(rng: &mut dyn RngCore, layers: &[LayerTopology]) -> Self {
         let layers = layers
             .windows(2)
             .map(|layers| Layer::random(rng, layers[0].neurons, layers[1].neurons))
@@ -40,15 +41,15 @@ impl Network {
     }
 }
 
-impl Layer{
-    fn random(rng: &mut dyn RngCore, input_size: usize, output_size: usize) -> Self{
+impl Layer {
+    fn random(rng: &mut dyn RngCore, input_size: usize, output_size: usize) -> Self {
         let neurons = (0..output_size)
             .map(|_| Neuron::random(rng, input_size))
             .collect();
 
-        Self {neurons}
+        Self { neurons }
     }
-    fn propagate(&self, inputs: Vec<f32>) -> Vec<f32>{
+    fn propagate(&self, inputs: Vec<f32>) -> Vec<f32> {
         self.neurons
             .iter()
             .map(|neuron| neuron.propagate(&inputs))
@@ -56,17 +57,15 @@ impl Layer{
     }
 }
 
-impl Neuron{
-    fn random(rng: &mut dyn RngCore, input_size: usize) -> Self{
+impl Neuron {
+    fn random(rng: &mut dyn RngCore, input_size: usize) -> Self {
         let bias = rng.gen_range(-1.0..=1.0);
 
-        let weights = (0..input_size)
-            .map(|_| rng.gen_range(-1.0..=1.0))
-            .collect();
+        let weights = (0..input_size).map(|_| rng.gen_range(-1.0..=1.0)).collect();
 
-        Self {bias, weights}
+        Self { bias, weights }
     }
-    fn propagate(&self, inputs: &[f32]) -> f32{
+    fn propagate(&self, inputs: &[f32]) -> f32 {
         assert_eq!(inputs.len(), self.weights.len());
 
         let output = inputs
@@ -79,17 +78,22 @@ impl Neuron{
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_relative_eq;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
     #[test]
-    fn random(){
+    fn random() {
         let mut rng = ChaCha8Rng::from_seed(Default::default());
         let neuron = Neuron::random(&mut rng, 4);
 
-        assert_eq!(neuron.bias, -0.6255188);
-        assert_eq!(neuron.weights,  &[0.67383957, 0.8181262, 0.26284897, 0.5238807]);
+        assert_relative_eq!(neuron.bias, -0.6255188);
+        assert_relative_eq!(
+            neuron.weights.as_slice(),
+            [0.67383957, 0.8181262, 0.26284897, 0.5238807].as_ref()
+        );
     }
 }
